@@ -1,4 +1,3 @@
-
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -9,8 +8,9 @@ version = "0.1.0"
 description = "A pluggable real-time chat app for Django (Channels) with multi-file uploads and light/dark UI."
 readme = "README.md"
 requires-python = ">=3.10"
-license = "BSD 3-Clause"
-authors = [{name="kawsar alam foysal"}]
+license = {text = "BSD-3-Clause"}
+authors = [{name="kawsar alam foysal", email="kawsaralam.ofc@gmail.com"}]
+keywords = ["django", "chat", "websocket", "channels", "real-time"]
 dependencies = [
     "Django>=4.2",
     "channels>=4.1",
@@ -20,13 +20,27 @@ dependencies = [
 ]
 classifiers = [
     "Framework :: Django",
+    "Framework :: Django :: 4.2",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: BSD License",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
 ]
 
 [project.urls]
 Homepage = "https://github.com/iamfoysal/django-chatkit"
+Repository = "https://github.com/iamfoysal/django-chatkit"
+Issues = "https://github.com/iamfoysal/django-chatkit/issues"
 
 [tool.setuptools]
 packages = ["chatkit"]
 
+[tool.setuptools.package-data]
+chatkit = [
+    "static/**/*",
+    "templates/**/*",
+    "migrations/**/*",
+]
