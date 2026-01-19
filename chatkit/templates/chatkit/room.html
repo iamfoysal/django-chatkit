@@ -1,0 +1,431 @@
+
+{% extends "chatkit/base.html" %}
+{% load static humanize %}
+{% block title %}Chat · {{ room.title|default:room.slug }}{% endblock %}
+{% block sidebar %}
+  <div class="space-y-4">
+    <a href="{% url 'chatkit:index' %}" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+      Back to Chats
+    </a>
+    
+    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Chat Info</h3>
+      <div class="text-sm text-gray-600 dark:text-gray-300">
+        <div class="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+          <div class="font-medium mb-1">{{ room.title }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">
+            {{ room.participants.count }} participant{{ room.participants.count|pluralize }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block content %}
+  <div class="h-screen flex flex-col">
+    <header class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+            {{ room.title|slice:":1"|upper }}
+          </div>
+          <div>
+            <div class="font-semibold">{{ room.title|default:room.slug }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              {{ room.participants.count }} participant{{ room.participants.count|pluralize }}
+            </div>
+          </div>
+        </div>
+        <a href="{% url 'chatkit:friends' %}" class="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
+          Manage Friends
+        </a>
+      </div>
+    </header>
+
+    <ul id="messages" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-900">
+      {% for m in messages %}
+        <li class="flex {% if m.sender == user %}justify-end{% else %}justify-start{% endif %} gap-2" data-timestamp="{{ m.created_at.isoformat }}">
+          <!-- User Avatar (only for other users' messages) -->
+          {% if m.sender != user %}
+            <div class="flex-shrink-0 mt-auto">
+              {% if m.sender.chatkit_settings.profile_image %}
+                <img src="{{ m.sender.chatkit_settings.profile_image.url }}" alt="{{ m.sender.username }}" 
+                     class="w-8 h-8 rounded-full object-cover">
+              {% else %}
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-semibold">
+                  {{ m.sender.username|slice:":1"|upper }}
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+          
+          <div class="max-w-xl {% if m.sender == user %}items-end{% else %}items-start{% endif %} flex flex-col">
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1 px-1">
+              {{ m.sender.username }} · {{ m.created_at|naturaltime }}
+            </div>
+            {% if m.content %}
+              <div class="px-4 py-2 rounded-2xl {% if m.sender == user %}bg-blue-600 text-white{% else %}bg-white dark:bg-gray-800 shadow{% endif %}">
+                {{ m.content|linebreaksbr }}
+              </div>
+            {% endif %}
+            
+            <!-- Seen Status (only for sent messages) -->
+            {% if m.sender == user %}
+              <div class="text-xs text-gray-400 dark:text-gray-500 mt-1 px-1">
+                {% if m.is_seen %}
+                  <span class="flex items-center gap-1">
+                    <svg class="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path>
+                    </svg>
+                    Seen {{ m.seen_at|naturaltime }}
+                  </span>
+                {% else %}
+                  <span class="flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path>
+                    </svg>
+                    Sent
+                  </span>
+                {% endif %}
+              </div>
+            {% endif %}
+            
+            {% if m.attachments.all %}
+              <div class="mt-2 flex flex-wrap gap-2">
+                {% for a in m.attachments.all %}
+                  {% if a.content_type|slice:":5" == "image" %}
+                    <!-- Image Preview -->
+                    <div class="relative group cursor-pointer" onclick="openImageModal('{{ a.file.url }}', '{{ a.file.name }}')">
+                      <img src="{{ a.file.url }}" alt="{{ a.file.name }}" 
+                           class="max-w-xs max-h-64 rounded-lg shadow-lg hover:shadow-xl transition-shadow object-cover">
+                      <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all flex items-center justify-center">
+                        <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
+                        </svg>
+                      </div>
+                    </div>
+                  {% else %}
+                    <!-- File Attachment -->
+                    <a href="{{ a.file.url }}" target="_blank" 
+                       class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                      </svg>
+                      <span class="truncate max-w-xs">{{ a.file.name|slice:"-40:" }}</span>
+                    </a>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <form id="send-form" class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="room_slug" value="{{ room.slug }}"/>
+      <input type="hidden" id="api-url" value="{% url 'chatkit:api_send_message' %}"/>
+      <div class="flex flex-col gap-2">
+        <div class="flex gap-2 items-end">
+          <textarea name="content" rows="2" placeholder="Type a message..." 
+                    class="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+          <label class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer transition-colors flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+            </svg>
+            <input type="file" name="files" multiple class="hidden"/>
+          </label>
+          <button type="button" id="send-button" class="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+          </button>
+        </div>
+        <div id="file-list" class="text-xs text-gray-500"></div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Image Lightbox Modal -->
+  <div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4" onclick="closeImageModal()">
+    <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+    <div class="max-w-7xl max-h-full" onclick="event.stopPropagation()">
+      <img id="modalImage" src="" alt="" class="max-w-full max-h-screen object-contain rounded-lg">
+      <p id="modalImageName" class="text-white text-center mt-4 text-sm"></p>
+    </div>
+  </div>
+
+  <script>
+    // Date Grouping Function
+    function getDateGroup(dateString) {
+      const msgDate = new Date(dateString);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const msgDay = new Date(msgDate.getFullYear(), msgDate.getMonth(), msgDate.getDate());
+      const daysDiff = Math.floor((today - msgDay) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff === 0) return "Today";
+      if (daysDiff === 1) return "Yesterday";
+      if (daysDiff === 2) return "2 days ago";
+      if (daysDiff === 3) return "3 days ago";
+      if (daysDiff < 7) return `${daysDiff} days ago`;
+      if (daysDiff < 14) return "1 week ago";
+      if (daysDiff < 21) return "2 weeks ago";
+      if (daysDiff < 28) return "3 weeks ago";
+      if (daysDiff < 60) return "1 month ago";
+      if (daysDiff < 90) return "2 months ago";
+      if (daysDiff < 365) {
+        const months = Math.floor(daysDiff / 30);
+        return `${months} months ago`;
+      }
+      const years = Math.floor(daysDiff / 365);
+      return `${years} year${years > 1 ? 's' : ''} ago`;
+    }
+
+    // Add date separators to messages
+    function addDateSeparators() {
+      const messagesList = document.getElementById('messages');
+      const messageItems = Array.from(messagesList.querySelectorAll('li[data-timestamp]'));
+      
+      let lastDateGroup = null;
+      messageItems.forEach((li) => {
+        const timestamp = li.getAttribute('data-timestamp');
+        const dateGroup = getDateGroup(timestamp);
+        
+        if (dateGroup !== lastDateGroup) {
+          const separator = document.createElement('li');
+          separator.className = 'flex justify-center my-4 date-separator';
+          separator.innerHTML = `
+            <div class="px-4 py-1 bg-gray-200 dark:bg-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300">
+              ${dateGroup}
+            </div>
+          `;
+          li.parentNode.insertBefore(separator, li);
+          lastDateGroup = dateGroup;
+        }
+      });
+    }
+
+    // Call on page load
+    addDateSeparators();
+
+    // Image Modal Functions
+    function openImageModal(url, name) {
+      document.getElementById('imageModal').classList.remove('hidden');
+      document.getElementById('modalImage').src = url;
+      document.getElementById('modalImageName').textContent = name;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.add('hidden');
+      document.getElementById('modalImage').src = '';
+      document.body.style.overflow = 'auto';
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeImageModal();
+    });
+
+    const roomSlug = "{{ room.slug }}";
+    const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const chatSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/chat/${roomSlug}/`);
+
+    chatSocket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      appendMessage(data);
+    };
+
+    function appendMessage(m) {
+      const ul = document.getElementById("messages");
+      const currentUser = "{{ user.username }}";
+      const isCurrentUser = m.sender === currentUser;
+      
+      // Check if we need a date separator
+      const messageItems = Array.from(ul.querySelectorAll('li[data-timestamp]'));
+      const lastMessage = messageItems[messageItems.length - 1];
+      let needsSeparator = false;
+      
+      if (lastMessage) {
+        const lastTimestamp = lastMessage.getAttribute('data-timestamp');
+        const lastDateGroup = getDateGroup(lastTimestamp);
+        const newDateGroup = getDateGroup(m.created_at);
+        needsSeparator = (lastDateGroup !== newDateGroup);
+      } else {
+        needsSeparator = true;
+      }
+      
+      // Add date separator if needed
+      if (needsSeparator) {
+        const separator = document.createElement("li");
+        separator.className = 'flex justify-center my-4 date-separator';
+        separator.innerHTML = `
+          <div class="px-4 py-1 bg-gray-200 dark:bg-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300">
+            ${getDateGroup(m.created_at)}
+          </div>
+        `;
+        ul.appendChild(separator);
+      }
+      
+      const li = document.createElement("li");
+      li.className = `flex ${isCurrentUser ? 'justify-end' : 'justify-start'} gap-2`;
+      li.setAttribute('data-timestamp', m.created_at);
+      
+      // Add user avatar for other users
+      if (!isCurrentUser) {
+        const avatarDiv = document.createElement("div");
+        avatarDiv.className = "flex-shrink-0 mt-auto";
+        const initial = m.sender.charAt(0).toUpperCase();
+        avatarDiv.innerHTML = `
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-semibold">
+            ${initial}
+          </div>
+        `;
+        li.appendChild(avatarDiv);
+      }
+      
+      const container = document.createElement("div");
+      container.className = `max-w-xl ${isCurrentUser ? 'items-end' : 'items-start'} flex flex-col`;
+      
+      const meta = document.createElement("div");
+      meta.className = "text-xs text-gray-500 dark:text-gray-400 mb-1 px-1";
+      meta.textContent = `${m.sender} · ${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+      container.appendChild(meta);
+      
+      if (m.content) {
+        const bubble = document.createElement("div");
+        bubble.className = `px-4 py-2 rounded-2xl ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 shadow'}`;
+        bubble.innerText = m.content;
+        container.appendChild(bubble);
+      }
+      
+      // Add seen status for sent messages
+      if (isCurrentUser) {
+        const seenStatus = document.createElement("div");
+        seenStatus.className = "text-xs text-gray-400 dark:text-gray-500 mt-1 px-1";
+        seenStatus.innerHTML = `
+          <span class="flex items-center gap-1">
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path>
+            </svg>
+            Sent
+          </span>
+        `;
+        container.appendChild(seenStatus);
+      }
+      
+      if (m.attachments && m.attachments.length) {
+        const wrap = document.createElement("div");
+        wrap.className = "mt-2 flex flex-wrap gap-2";
+        m.attachments.forEach(a => {
+          if (a.content_type && a.content_type.startsWith('image/')) {
+            // Image preview
+            const imgDiv = document.createElement("div");
+            imgDiv.className = "relative group cursor-pointer";
+            imgDiv.onclick = () => openImageModal(a.url, a.name);
+            
+            const img = document.createElement("img");
+            img.src = a.url;
+            img.alt = a.name;
+            img.className = "max-w-xs max-h-64 rounded-lg shadow-lg hover:shadow-xl transition-shadow object-cover";
+            imgDiv.appendChild(img);
+            
+            const overlay = document.createElement("div");
+            overlay.className = "absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all flex items-center justify-center";
+            overlay.innerHTML = '<svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>';
+            imgDiv.appendChild(overlay);
+            
+            wrap.appendChild(imgDiv);
+          } else {
+            // File attachment
+            const link = document.createElement("a");
+            link.href = a.url;
+            link.target = "_blank";
+            link.className = "px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2";
+            link.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg><span class="truncate max-w-xs">' + a.name.slice(-40) + '</span>';
+            wrap.appendChild(link);
+          }
+        });
+        container.appendChild(wrap);
+      }
+      
+      li.appendChild(container);
+      ul.appendChild(li);
+      ul.scrollTop = ul.scrollHeight;
+    }
+
+    // File input feedback
+    const fileInput = document.querySelector('input[type=file]');
+    const fileList = document.getElementById('file-list');
+    fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length) {
+        fileList.textContent = `${files.length} file(s) selected: ${files.map(f => f.name).join(', ')}`;
+      } else {
+        fileList.textContent = '';
+      }
+    });
+
+    // Submit via fetch to support files
+    const sendForm = document.getElementById("send-form");
+    const apiUrl = document.getElementById("api-url").value;
+    const submitMessage = async () => {
+      const formData = new FormData(sendForm);
+      const content = sendForm.querySelector('textarea[name=content]').value.trim();
+      
+      // Don't send empty messages
+      if (!content && !sendForm.querySelector('input[type=file]').files.length) {
+        return;
+      }
+      
+      const resp = await fetch(apiUrl, {method: "POST", body: formData, headers: {"X-CSRFToken": sendForm.querySelector('input[name=csrfmiddlewaretoken]').value}});
+      if (!resp.ok) {
+        console.error("Send failed", await resp.text());
+      } else {
+        sendForm.querySelector('textarea[name=content]').value = "";
+        sendForm.querySelector('input[type=file]').value = "";
+        fileList.textContent = '';
+      }
+    };
+    
+    // Handle button click
+    document.getElementById("send-button").addEventListener("click", submitMessage);
+    
+    // Prevent form submission
+    sendForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      return false;
+    });
+
+    // Enter key to send message (Shift+Enter for new line)
+    const textarea = document.querySelector('textarea[name=content]');
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitMessage();
+      }
+    });
+
+    // Auto-scroll to bottom on load
+    const messagesList = document.getElementById('messages');
+    messagesList.scrollTop = messagesList.scrollHeight;
+    
+    // Smooth scroll to bottom with a slight delay to ensure content is rendered
+    setTimeout(() => {
+      messagesList.scrollTo({
+        top: messagesList.scrollHeight,
+        behavior: 'smooth'
+      });
+    }, 100);
+  </script>
+{% endblock %}
+

@@ -1,0 +1,17 @@
+
+{% extends "chatkit/base.html" %}
+{% block title %}ChatKit · Settings{% endblock %}
+{% block content %}
+<div class="p-6 max-w-xl">
+  <h1 class="text-xl font-semibold mb-4">Settings</h1>
+  <form method="post">{% csrf_token %}
+    <label class="block mb-2">Theme</label>
+    <select name="theme" class="border rounded px-2 py-1">
+      <option value="system" {% if settings.theme == 'system' %}selected{% endif %}>System</option>
+      <option value="light" {% if settings.theme == 'light' %}selected{% endif %}>Light</option>
+      <option value="dark" {% if settings.theme == 'dark' %}selected{% endif %}>Dark</option>
+    </select>
+    <button class="ml-2 px-3 py-1 rounded bg-blue-600 text-white">Save</button>
+  </form>
+</div>
+{% endblock %}

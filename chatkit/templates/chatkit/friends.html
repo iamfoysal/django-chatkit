@@ -1,0 +1,306 @@
+{% extends "chatkit/base.html" %}
+{% block title %}ChatKit · Manage Friends{% endblock %}
+
+{% block sidebar %}
+  <div class="space-y-4">
+    <a href="{% url 'chatkit:index' %}" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+      Back to Chat
+    </a>
+    
+    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Quick Stats</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Friends</span>
+          <span class="font-semibold">{{ friends|length }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Pending Requests</span>
+          <span class="font-semibold">{{ received_requests|length }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Sent Requests</span>
+          <span class="font-semibold">{{ sent_requests|length }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="h-full overflow-y-auto">
+    <div class="max-w-4xl mx-auto p-6 space-y-6">
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-2">Manage Friends</h1>
+        <p class="text-gray-600 dark:text-gray-400">Connect with friends and manage your network</p>
+      </div>
+
+      <!-- Messages -->
+      {% if messages %}
+        <div class="space-y-2">
+          {% for message in messages %}
+            <div class="px-4 py-3 rounded-lg {% if message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200{% elif message.tags == 'success' %}bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200{% elif message.tags == 'warning' %}bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200{% else %}bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Add Friend Section -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+          </svg>
+          Add Friend
+        </h2>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+          <!-- Send Friend Request -->
+          <div>
+            <h3 class="font-medium mb-3 text-gray-700 dark:text-gray-300">Send Friend Request</h3>
+            <form method="post" action="{% url 'chatkit:send_friend_request' %}" class="space-y-3">
+              {% csrf_token %}
+              <div>
+                <label class="block text-sm font-medium mb-1">Username</label>
+                {{ friend_request_form.username }}
+              </div>
+              <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                Send Request
+              </button>
+            </form>
+          </div>
+
+          <!-- Create Invitation Link -->
+          <div>
+            <h3 class="font-medium mb-3 text-gray-700 dark:text-gray-300">Create Invitation Link</h3>
+            <form method="post" action="{% url 'chatkit:create_invitation' %}" class="space-y-3">
+              {% csrf_token %}
+              <div>
+                <label class="block text-sm font-medium mb-1">Max Uses</label>
+                {{ invitation_form.max_uses }}
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Expires in (days)</label>
+                {{ invitation_form.expires_in_days }}
+              </div>
+              <button type="submit" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                Generate Link
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Friend Requests -->
+      {% if received_requests %}
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+          </svg>
+          Friend Requests
+          <span class="text-sm bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-2 py-1 rounded-full">
+            {{ received_requests|length }}
+          </span>
+        </h2>
+        
+        <div class="space-y-3">
+          {% for req in received_requests %}
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                  {{ req.from_user.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <div class="font-medium">{{ req.from_user.username }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ req.created_at|timesince }} ago
+                  </div>
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <form method="post" action="{% url 'chatkit:accept_friend_request' req.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    Accept
+                  </button>
+                </form>
+                <form method="post" action="{% url 'chatkit:reject_friend_request' req.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    Decline
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Sent Friend Requests -->
+      {% if sent_requests %}
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+          </svg>
+          Sent Requests
+        </h2>
+        
+        <div class="space-y-3">
+          {% for req in sent_requests %}
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white font-semibold">
+                  {{ req.to_user.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <div class="font-medium">{{ req.to_user.username }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">
+                    Sent {{ req.created_at|timesince }} ago
+                  </div>
+                </div>
+              </div>
+              <form method="post" action="{% url 'chatkit:cancel_friend_request' req.id %}">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
+                  Cancel
+                </button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Active Invitation Links -->
+      {% if invitation_links %}
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+          </svg>
+          Your Invitation Links
+        </h2>
+        
+        <div class="space-y-3">
+          {% for link in invitation_links %}
+            <div class="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    Created {{ link.created_at|timesince }} ago · Used {{ link.use_count }}/{{ link.max_uses }} times
+                    {% if link.expires_at %} · Expires {{ link.expires_at|timeuntil }}{% endif %}
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <input type="text" readonly 
+                           value="{{ request.scheme }}://{{ request.get_host }}{% url 'chatkit:accept_invitation' link.token %}"
+                           class="flex-1 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono"
+                           onclick="this.select()">
+                    <button onclick="copyToClipboard(this)" 
+                            data-url="{{ request.scheme }}://{{ request.get_host }}{% url 'chatkit:accept_invitation' link.token %}"
+                            class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors text-sm font-medium">
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                <form method="post" action="{% url 'chatkit:deactivate_invitation' link.id %}" class="ml-2">
+                  {% csrf_token %}
+                  <button type="submit" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors" title="Deactivate">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Friends List -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          My Friends
+          <span class="text-sm bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
+            {{ friends|length }}
+          </span>
+        </h2>
+        
+        {% if friends %}
+          <div class="grid md:grid-cols-2 gap-4">
+            {% for friend_data in friends %}
+              <div class="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-900/50 dark:to-transparent rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
+                <div class="flex items-center gap-3 flex-1">
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center text-white font-semibold">
+                    {{ friend_data.user.username|slice:":1"|upper }}
+                  </div>
+                  <div class="flex-1">
+                    <div class="font-medium">{{ friend_data.user.username }}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                      Friends since {{ friend_data.friendship.created_at|date:"M d, Y" }}
+                    </div>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  {% if friend_data.room %}
+                    <a href="{% url 'chatkit:room' slug=friend_data.room.slug %}" 
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                      Chat
+                    </a>
+                  {% endif %}
+                  <form method="post" action="{% url 'chatkit:remove_friend' friend_data.friendship.id %}" 
+                        onsubmit="return confirm('Are you sure you want to remove {{ friend_data.user.username }} as a friend?');">
+                    {% csrf_token %}
+                    <button type="submit" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors" title="Remove friend">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-12">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-medium mb-2">No friends yet</h3>
+            <p class="text-gray-500 dark:text-gray-400">Start by sending a friend request or creating an invitation link above!</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function copyToClipboard(button) {
+      const url = button.getAttribute('data-url');
+      navigator.clipboard.writeText(url).then(() => {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.classList.add('bg-green-600');
+        button.classList.remove('bg-purple-600');
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.classList.remove('bg-green-600');
+          button.classList.add('bg-purple-600');
+        }, 2000);
+      });
+    }
+  </script>
+{% endblock %}

@@ -1,0 +1,6 @@
+
+<select name="theme" class="text-sm bg-transparent border rounded px-2 py-1">
+  <option value="system" {% if settings.theme == 'system' %}selected{% endif %}>System</option>
+  <option value="light" {% if settings.theme == 'light' %}selected{% endif %}>Light</option>
+  <option value="dark" {% if settings.theme == 'dark' %}selected{% endif %}>Dark</option>
+</select>

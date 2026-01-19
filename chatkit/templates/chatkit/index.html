@@ -1,0 +1,157 @@
+
+{% extends "chatkit/base.html" %}
+{% load humanize %}
+{% block title %}ChatKit · Friends{% endblock %}
+
+{% block sidebar %}
+  <div class="space-y-4">
+    <!-- Friends Section -->
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase">Friends</h3>
+        <a href="{% url 'chatkit:friends' %}" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Manage</a>
+      </div>
+      
+      <nav class="space-y-1">
+        {% for item in friends_with_rooms %}
+          {% if item.room %}
+            <a href="{% url 'chatkit:room' slug=item.room.slug %}" 
+               class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                {{ item.friend.username|slice:":1"|upper }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate">{{ item.friend.username }}</div>
+                {% if item.friend.last_login %}
+                  <span class="text-xs text-gray-500 dark:text-gray-400">{{ item.friend.last_login|naturaltime }}</span>
+                {% else %}
+                  <span class="text-xs text-gray-500 dark:text-gray-400">Never logged in</span>
+                {% endif %}
+              </div>
+            </a>
+          {% endif %}
+        {% empty %}
+          <div class="text-sm text-gray-500 dark:text-gray-400 px-2 py-4 text-center">
+            <p class="mb-2">No friends yet</p>
+            <a href="{% url 'chatkit:friends' %}" class="text-blue-600 dark:text-blue-400 hover:underline text-xs">
+              Add friends to start chatting
+            </a>
+          </div>
+        {% endfor %}
+      </nav>
+    </div>
+
+    <!-- Friend Requests Section -->
+    {% if pending_requests %}
+    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+        Requests ({{ pending_requests|length }})
+      </h3>
+      <div class="space-y-2">
+        {% for req in pending_requests|slice:":3" %}
+          <div class="px-2 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <div class="text-sm font-medium mb-1">{{ req.from_user.username }}</div>
+            <div class="flex gap-1">
+              <form method="post" action="{% url 'chatkit:accept_friend_request' req.id %}" class="flex-1">
+                {% csrf_token %}
+                <button type="submit" class="w-full px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">
+                  Accept
+                </button>
+              </form>
+              <form method="post" action="{% url 'chatkit:reject_friend_request' req.id %}">
+                {% csrf_token %}
+                <button type="submit" class="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                  Decline
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+        {% if pending_requests|length > 3 %}
+          <a href="{% url 'chatkit:friends' %}" class="block text-xs text-center text-blue-600 dark:text-blue-400 hover:underline">
+            View all ({{ pending_requests|length }})
+          </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="flex items-center justify-center h-full p-8">
+    <div class="text-center max-w-md">
+      <!-- Welcome Section -->
+      <div class="mb-8">
+        <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"></path>
+          </svg>
+        </div>
+        <h1 class="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Welcome to ChatKit
+        </h1>
+        <p class="text-gray-600 dark:text-gray-300">Connect with friends and start chatting</p>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="space-y-3">
+        {% if friends_with_rooms %}
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Select a friend from the sidebar to start chatting
+          </p>
+        {% else %}
+          <a href="{% url 'chatkit:friends' %}" 
+             class="block w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+            <div class="flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              Add Friends
+            </div>
+          </a>
+          
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300 dark:border-gray-700"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-gray-50 dark:bg-gray-900 text-gray-500">Get Started</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 text-left">
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="font-medium mb-1">Send Friend Request</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Find and connect with existing users</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="font-medium mb-1">Create Invitation Link</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Share a link to invite new friends</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
