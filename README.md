@@ -115,4 +115,4 @@ daphne yourproject.asgi:application
 - The HTTP endpoint is used to submit messages + files. WebSocket broadcasts updates to connected clients in that room.
 
 ## License
-MIT
+This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
