@@ -16,7 +16,7 @@ Telegram/WhatsApp-inspired UI with light/dark mode, and simple per-user settings
 
 1) Install:
 ```bash
-pip install -e .
+pip install django-chatkit
 ```
 
 2) Add to `INSTALLED_APPS`:
