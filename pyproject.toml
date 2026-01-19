@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-chatkit"
-version = "0.1.0"
+version = "0.1.1"
 description = "A pluggable real-time chat app for Django (Channels) with multi-file uploads and light/dark UI."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "BSD-3-Clause"}
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 authors = [{name="kawsar alam foysal", email="kawsaralam.ofc@gmail.com"}]
 keywords = ["django", "chat", "websocket", "channels", "real-time"]
 dependencies = [
@@ -17,6 +18,7 @@ dependencies = [
     "daphne>=4.0",
     "whitenoise>=6.0",
     "Pillow>=10.0.0",
+    "channels-redis>=4.0",
 ]
 classifiers = [
     "Framework :: Django",
@@ -25,7 +27,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: BSD License",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
 ]
